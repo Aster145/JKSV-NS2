@@ -1,0 +1,51 @@
+﻿JKSV-NS2 1.0.0
+作者：果冻扭扭
+原版 JKSV 作者：J-D-K（JK）
+哔哩哔哩账号：果冻扭扭扭
+原项目：https://github.com/J-D-K/JKSV
+
+安装与使用
+把压缩包中的 switch 文件夹合并到 SD 卡根目录。
+程序位置：sdmc:/switch/JKSV-NS2/JKSV-NS2.nro
+也可单独放置 NRO；程序日志 JKSV-NS2.log 会写在 NRO 同目录，每次启动覆盖。
+关于页面显示实际日志位置；需要启动器提供 NRO 的完整 SD 卡路径。
+原来的备份和配置目录仍为 sdmc:/JKSV 与 sdmc:/config/JKSV。
+
+FTP
+主界面进入工具菜单，选择“FTP 服务”。页面显示 ftp://主机IP:1337。
+电脑连接同一局域网，FTP 客户端选择 FTP、端口1337、匿名登录、被动模式。
+FTP 根目录就是 SD 卡根目录，存档备份位于 /JKSV/，无需在前面添加 /sdmc:。
+支持浏览、上传、下载、续传、重命名、创建和删除目录/文件。
+支持中文及带空格的名称。上传先写临时文件，完成后再替换目标。
+服务只在 FTP 页面运行；按 B 停止并返回，然后可以进行备份或恢复。
+同一时间支持一个客户端连接。
+
+界面与署名
+默认简体中文，设置里的“界面语言”可按 A 切换中文、English、日本語，重启生效。
+工具菜单中的“关于”显示原作者、NS2维护者、B站账号、原项目链接和致谢。
+应用名称 JKSV-NS2，版本1.0.0，启动器作者字段为果冻扭扭。
+图标保留 JKSV 造型和字样，主色更换为紫色与青绿色。
+
+验证范围
+保留前版已实机验证的启动、SDL加速、备份/恢复基础。
+此版经过编译、资源打包检查、日志路径用例和本机 FTP 协议传输测试。
+新增 FTP 服务、关于页面及新日志位置仍需要 Switch 2 真机确认。
+
+源码与构建
+配套源码包包含当前 JKSV、FsLib、SDLLib 源码，以及新功能源码、资源和原许可证。
+本版构建关闭 curl/remote；新 FTP 服务独立于这两个开关。
+devkitA64 r29-3 / GCC15.2.0 / newlib4.5.0.20241231。
+必须使用与当前 newlib 重新编译匹配的 libounce_core.a，不能换回旧预编译的 ABI。
+对应 libounce 提交：9382b1ec48ac5dabdaf52f1f99e0c0aacd02cd2f。
+从该提交源码 nx 目录执行：make -j6 SWITCH2=1 lib/libounce_core.a
+先安装与该固定提交对应的 ounce-devkit；将已安装的 libounce 整个目录复制到独立目录，
+保留完整 include（含 external 头）、switch2_cpu.mk 及其他规则文件和许可证。
+仅用上一步重编结果替换独立目录中的 lib/libounce_core.a，然后在 JKSV 根目录执行：
+make -j6 ENABLE_CURL=0 ENABLE_REMOTE=0 BUILD=build-ns2-1.0.0 LIBNX=<独立libounce目录>
+
+图标与致谢
+原图标：Iguniisu；包含 Twemoji（CC BY 4.0）图形，详见原README与原项目。
+原 JKSV 保持 GPL-3.0 许可，许可证随包附带。
+新配色使用内置 imagegen 编辑，源图在源码包 iconAssets/JKSV_NS2_icon.png。
+提示词：保持原JKSV图标的造型、布局、灰色背景、米白面板和JK/SV字样，
+仅将蓝色改为紫色#8B5CF6，红色改为青绿色#2DD4BF，不添加新元素。

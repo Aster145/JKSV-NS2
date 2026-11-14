@@ -1,0 +1,22 @@
+{
+  "JKSV": {
+    "url": "https://github.com/J-D-K/JKSV",
+    "commit": "d39fd80a208b7c802d12edb12f362506a0addb47",
+    "local_modifications_included": true
+  },
+  "FsLib": {
+    "url": "https://github.com/J-D-K/FsLib",
+    "commit": "382c7d490a68e4897fdc7d1ba37ac6e49cd6ac0e",
+    "local_modifications_included": true
+  },
+  "SDLLib": {
+    "url": "https://github.com/J-D-K/SDLLib",
+    "commit": "9fa1be94b7c0393f479f47dc9a74908a38112fe8",
+    "local_modifications_included": true
+  },
+  "libounce": {
+    "url": "https://github.com/ouncebrew/libounce",
+    "commit": "9382b1ec48ac5dabdaf52f1f99e0c0aacd02cd2f",
+    "note": "Rebuild libounce_core with the same devkitA64/newlib used for the application."
+  }
+}

@@ -1,0 +1,28 @@
+#pragma once
+#include "build_options.hpp"
+
+#include "appstates/TitleOptionState.hpp"
+#include "sys/sys.hpp"
+
+namespace tasks::titleoptions
+{
+    /// @brief Adds a title to the blacklist. Needs to be task formatted to work with confirmations.
+    void blacklist_title(sys::threadpool::JobData taskData);
+
+    /// @brief Wipes deletes all local backups for the current title.
+    void delete_all_local_backups_for_title(sys::threadpool::JobData taskData);
+
+    /// @brief Deletes all backups found on the remote storage service.
+#if JKSV_ENABLE_REMOTE
+    void delete_all_remote_backups_for_title(sys::threadpool::JobData taskData);
+#endif
+
+    /// @brief Resets save data for the current title.
+    void reset_save_data(sys::threadpool::JobData taskData);
+
+    /// @brief Deletes the save data from the system the same way Data Management does.
+    void delete_save_data_from_system(sys::threadpool::JobData taskData);
+
+    /// @brief Extends the save container for the current save info.
+    void extend_save_data(sys::threadpool::JobData taskData);
+}
