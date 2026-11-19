@@ -206,7 +206,7 @@ extern "C" void __appInit(void)
     if (R_FAILED(result)) { diagAbortWithResult(result); }
     // Independent FS handles survive FsLib replacing the SDK's sdmc devoptab.
     open_boot_log();
-    sys::boot_log("JKSV-NS2 1.0.0");
+    sys::boot_log("JKSV-NS2 1.0.1");
     sys::boot_log("NRO: %s", s_nroPath);
     sys::boot_log("Log: %s", s_logPath);
     sys::boot_log("SM_INIT=OK\nFS_INIT=OK");

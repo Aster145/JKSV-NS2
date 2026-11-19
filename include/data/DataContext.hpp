@@ -32,7 +32,7 @@ namespace data
             bool title_is_loaded(uint64_t applicationID) noexcept;
 
             /// @brief Attempts to load a title with the application ID passed.
-            void load_title(uint64_t applicationID);
+            void load_title(uint64_t applicationID, const NacpStruct *archivedNacp = nullptr);
 
             /// @brief Returns the title info mapped to applicationID. nullptr on not found.
             data::TitleInfo *get_title_by_id(uint64_t applicationID) noexcept;

@@ -16,6 +16,7 @@ namespace sdl
     /// @param windowHeight Height of window.
     /// @return True on success. False on failure.
     bool initialize(const char *windowTitle, int windowWidth, int windowHeight);
+    bool initialize(const char *windowTitle, int windowWidth, int windowHeight, bool softwareOnly);
 
     /// @brief Quits SDL
     void exit();

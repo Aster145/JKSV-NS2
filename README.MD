@@ -1,6 +1,6 @@
 # JKSV-NS2
 
-Switch 2 / kaiHEN 版本的 JKSV，当前版本 **1.0.0**。
+Switch 2 / kaiHEN 版本的 JKSV，当前版本 **1.0.1**。
 
 - 原版作者：[J-D-K（JK）](https://github.com/J-D-K/JKSV)
 - NS2 移植与维护：**果冻扭扭**
@@ -16,6 +16,8 @@ Switch 2 / kaiHEN 版本的 JKSV，当前版本 **1.0.0**。
 - 工具菜单提供 FTP 服务：端口 **1337**，匿名登录、被动模式，根目录为 SD 卡。
 - FTP 仅在该页面打开时运行，按 B 停止并返回；支持中文和带空格目录、上传下载、续传、改名及文件管理。
 - 关于页面保留原作者、维护者、B 站账号和原项目致谢。
+- 游戏封面从主机系统读取。系统未提供可用封面时，列表显示带编号的占位图。
+- 启动时优先使用 SDL 加速渲染，初始化失败会尝试软件渲染。遇到花屏时，可按住左肩键 L 启动，直接使用软件渲染。
 
 ## 构建与验证
 
@@ -23,8 +25,7 @@ Switch 2 / kaiHEN 版本的 JKSV，当前版本 **1.0.0**。
 必须使用匹配当前 newlib ABI 的重编 `libounce_core.a`，详见 [构建说明](BUILDING-NS2.txt)。
 发行构建关闭 curl/remote；FTP 服务独立于这两个编译开关。
 
-前版启动、界面、备份和恢复已由用户进行实机验证。本版通过交叉编译、资源打包检查、
-18 个日志路径用例及本机 FTP 协议传输测试；新增 FTP、关于页面和日志路径尚待 Switch 2 实机确认。
+1.0.1 采用 IconTest04 的图标读取和渲染代码。该测试版已在 Switch 2 上确认首屏正常。
 
 ## 许可与来源
 
@@ -161,7 +162,7 @@ Detailed instructions for how to use JKSV's Google Drive and WebDav features can
 make -j6 ENABLE_CURL=0 ENABLE_REMOTE=0 LIBNX=/path/to/libounce-abi-overlay
 ```
 
-The output is `JKSV-NS2.nro` (version 1.0.0). Load it through the kaiHEN homebrew environment. Switching the feature flags automatically rebuilds the application's objects; `ENABLE_CURL=0 ENABLE_REMOTE=1` is rejected. The build without curl/remote does not invoke `curl-config`, include curl headers, or link curl/tinyxml2. The SD-card FTP server is independent of those switches. `json-c` remains required for local configuration.
+The output is `JKSV-NS2.nro` (version 1.0.1). Load it through the kaiHEN homebrew environment. Switching the feature flags automatically rebuilds the application's objects; `ENABLE_CURL=0 ENABLE_REMOTE=1` is rejected. The build without curl/remote does not invoke `curl-config`, include curl headers, or link curl/tinyxml2. The SD-card FTP server is independent of those switches. `json-c` remains required for local configuration.
 
 Rendering tries accelerated + vsync, then accelerated, then software, and requires render-target textures in each mode. Startup and application messages share `JKSV-NS2.log` beside the NRO, using the launch path supplied by the loader.
 

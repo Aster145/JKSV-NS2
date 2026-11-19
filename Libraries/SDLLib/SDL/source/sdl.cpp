@@ -33,9 +33,32 @@ namespace
 
     // SDL_image flags.
     constexpr int SDL_IMAGE_FLAGS = IMG_INIT_JPG | IMG_INIT_PNG;
+
+    SDL_Renderer *create_renderer(SDL_Window *window, Uint32 flags)
+    {
+        if (!(flags & SDL_RENDERER_SOFTWARE)) { return SDL_CreateRenderer(window, -1, flags); }
+
+        // Select SDL's CPU renderer by index even if a driver hint prefers OpenGL.
+        const int count = SDL_GetNumRenderDrivers();
+        for (int i = 0; i < count; ++i)
+        {
+            SDL_RendererInfo driver{};
+            if (SDL_GetRenderDriverInfo(i, &driver) == 0 && (driver.flags & SDL_RENDERER_SOFTWARE))
+            {
+                return SDL_CreateRenderer(window, i, flags);
+            }
+        }
+        SDL_SetError("No SDL software renderer is available");
+        return nullptr;
+    }
 } // namespace
 
 bool sdl::initialize(const char *windowTitle, int windowWidth, int windowHeight)
+{
+    return initialize(windowTitle, windowWidth, windowHeight, false);
+}
+
+bool sdl::initialize(const char *windowTitle, int windowWidth, int windowHeight, bool softwareOnly)
 {
     static constexpr uint32_t SDL_INIT_FLAGS   = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER;
     static constexpr SDL_AudioSpec AUDIO_SPECS = {.freq     = 11025,
@@ -66,14 +89,35 @@ bool sdl::initialize(const char *windowTitle, int windowWidth, int windowHeight)
 
     for (Uint32 flags : RENDERER_FLAGS)
     {
+        if (softwareOnly && !(flags & SDL_RENDERER_SOFTWARE)) { continue; }
         SDL_ClearError();
-        Renderer candidate(SDL_CreateRenderer(s_window.get(), -1, flags), destroy_renderer);
+        Renderer candidate(create_renderer(s_window.get(), flags), destroy_renderer);
         SDL_RendererInfo info{};
         bool usable = candidate && SDL_GetRendererInfo(candidate.get(), &info) == 0;
+        const Uint32 backend = flags & (SDL_RENDERER_SOFTWARE | SDL_RENDERER_ACCELERATED);
+        if (usable && !(info.flags & backend))
+        {
+            SDL_SetError("Renderer %s does not match the requested backend", info.name ? info.name : "unknown");
+            usable = false;
+        }
         if (usable && !SDL_RenderTargetSupported(candidate.get()))
         {
             SDL_SetError("Renderer %s does not support target textures", info.name ? info.name : "unknown");
             usable = false;
+        }
+
+        int outputWidth{}, outputHeight{};
+        if (usable) { usable = SDL_GetRendererOutputSize(candidate.get(), &outputWidth, &outputHeight) == 0; }
+        if (usable && (outputWidth <= 0 || outputHeight <= 0))
+        {
+            SDL_SetError("Invalid renderer output size %d x %d", outputWidth, outputHeight);
+            usable = false;
+        }
+        if (usable)
+        {
+            usable = SDL_SetRenderTarget(candidate.get(), nullptr) == 0 &&
+                     SDL_SetRenderDrawColor(candidate.get(), 0, 0, 0, SDL_ALPHA_OPAQUE) == 0 &&
+                     SDL_RenderClear(candidate.get()) == 0 && SDL_RenderFlush(candidate.get()) == 0;
         }
         if (!usable)
         {
@@ -85,9 +129,10 @@ bool sdl::initialize(const char *windowTitle, int windowWidth, int windowHeight)
             continue;
         }
 
-        SDL_Log("SDL renderer selected: %s (flags=0x%X)",
+        SDL_RenderPresent(candidate.get());
+        SDL_Log("SDL renderer selected: %s (flags=0x%X, output=%dx%d); initial clear presented",
                 info.name ? info.name : "unknown",
-                static_cast<unsigned int>(info.flags));
+                static_cast<unsigned int>(info.flags), outputWidth, outputHeight);
         s_renderer = std::move(candidate);
         s_activeRenderer = s_renderer.get();
         if (++s_nextRendererGeneration == 0) { ++s_nextRendererGeneration; }

@@ -1,4 +1,4 @@
-﻿JKSV-NS2 1.0.0
+﻿JKSV-NS2 1.0.1
 作者：果冻扭扭
 原版 JKSV 作者：J-D-K（JK）
 哔哩哔哩账号：果冻扭扭扭
@@ -23,13 +23,14 @@ FTP 根目录就是 SD 卡根目录，存档备份位于 /JKSV/，无需在前�
 界面与署名
 默认简体中文，设置里的“界面语言”可按 A 切换中文、English、日本語，重启生效。
 工具菜单中的“关于”显示原作者、NS2维护者、B站账号、原项目链接和致谢。
-应用名称 JKSV-NS2，版本1.0.0，启动器作者字段为果冻扭扭。
+应用名称 JKSV-NS2，版本1.0.1，启动器作者字段为果冻扭扭。
 图标保留 JKSV 造型和字样，主色更换为紫色与青绿色。
 
-验证范围
-保留前版已实机验证的启动、SDL加速、备份/恢复基础。
-此版经过编译、资源打包检查、日志路径用例和本机 FTP 协议传输测试。
-新增 FTP 服务、关于页面及新日志位置仍需要 Switch 2 真机确认。
+游戏封面与画面显示
+游戏封面从主机系统读取。系统未提供可用封面时，列表显示带编号的占位图。
+启动时优先使用 SDL 加速渲染，初始化失败会尝试软件渲染。
+如遇花屏，可按住左肩键 L 启动，直接使用软件渲染。
+1.0.1 采用 IconTest04 的图标读取和渲染代码。该测试版已在 Switch 2 上确认首屏正常。
 
 源码与构建
 配套源码包包含当前 JKSV、FsLib、SDLLib 源码，以及新功能源码、资源和原许可证。
@@ -41,7 +42,7 @@ devkitA64 r29-3 / GCC15.2.0 / newlib4.5.0.20241231。
 先安装与该固定提交对应的 ounce-devkit；将已安装的 libounce 整个目录复制到独立目录，
 保留完整 include（含 external 头）、switch2_cpu.mk 及其他规则文件和许可证。
 仅用上一步重编结果替换独立目录中的 lib/libounce_core.a，然后在 JKSV 根目录执行：
-make -j6 ENABLE_CURL=0 ENABLE_REMOTE=0 BUILD=build-ns2-1.0.0 LIBNX=<独立libounce目录>
+make -j6 ENABLE_CURL=0 ENABLE_REMOTE=0 BUILD=build-ns2-1.0.1 LIBNX=<独立libounce目录>
 
 图标与致谢
 原图标：Iguniisu；包含 Twemoji（CC BY 4.0）图形，详见原README与原项目。

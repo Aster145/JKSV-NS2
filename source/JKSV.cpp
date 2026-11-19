@@ -98,6 +98,10 @@ JKSV::JKSV()
     JKSV::set_boost_mode();
     sys::boot_log("END set_boost_mode");
 
+    sys::boot_log("BEGIN input::initialize");
+    input::initialize();
+    sys::boot_log("END input::initialize");
+
     // Nothing in JKSV can really continue without these.
     ABORT_ON_FAILURE(JKSV::initialize_services());
     ABORT_ON_FAILURE(JKSV::initialize_filesystem());
@@ -115,10 +119,6 @@ JKSV::JKSV()
     ABORT_ON_FAILURE(curl::initialize());
 #endif
 
-    // Config and input.
-    sys::boot_log("BEGIN input::initialize");
-    input::initialize();
-    sys::boot_log("END input::initialize");
     sys::boot_log("BEGIN config::initialize");
     config::initialize();
     m_configInitialized = true;
@@ -238,7 +238,7 @@ void JKSV::update()
 
 void JKSV::render()
 {
-    sdl::frame_begin(colors::CLEAR_COLOR);
+    if (!sdl::frame_begin(colors::CLEAR_COLOR)) { return; }
 
     JKSV::render_base();
     StateManager::render();
@@ -298,7 +298,10 @@ bool JKSV::initialize_sdl()
 
     // Initialize SDL, freetype and the system font.
     sys::boot_log("BEGIN sdl::initialize");
-    const bool sdlInit = sdl::initialize("JKSV", graphics::SCREEN_WIDTH, graphics::SCREEN_HEIGHT);
+    input::update();
+    const bool softwareOnly = input::button_pressed(HidNpadButton_L) || input::button_held(HidNpadButton_L);
+    sys::boot_log("Startup renderer preference: %s", softwareOnly ? "software (L held)" : "accelerated first");
+    const bool sdlInit = sdl::initialize("JKSV", graphics::SCREEN_WIDTH, graphics::SCREEN_HEIGHT, softwareOnly);
     sys::boot_log("END sdl::initialize: ok=%u", static_cast<unsigned>(sdlInit));
     if (!sdlInit)
     {
@@ -409,7 +412,7 @@ void JKSV::render_base()
     static constexpr int TRANS_Y    = 680;
     static constexpr int BUILD_SIZE = 14;
 
-    static constexpr std::string_view TITLE_TEXT = "JKSV-NS2  1.0.0";
+    static constexpr std::string_view TITLE_TEXT = "JKSV-NS2  1.0.1";
 
     // Top and bottom framing lines.
     sdl::render_line(sdl::Texture::Null, LINE_X_BEGIN, LINE_A_Y, LINE_X_END, LINE_A_Y, colors::WHITE);

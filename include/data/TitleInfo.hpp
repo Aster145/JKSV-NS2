@@ -18,14 +18,8 @@ namespace data
     class TitleInfo final : public data::DataCommon
     {
         public:
-            /// @brief Constructs a TitleInfo instance. Loads control data, icon.
-            /// @param applicationID Application ID of title to load.
-            TitleInfo(uint64_t applicationID) noexcept;
-
-            /// @brief Initializes a TitleInfo instance using external (cached) NsApplicationControlData
-            /// @param applicationID Application ID of the title loaded from cache.
-            /// @param controlData Reference to the control data to init from.
-            TitleInfo(uint64_t applicationID, NsApplicationControlData &controlData) noexcept;
+            /// @brief Reads artwork from the console. An archived NACP supplies only missing save metadata.
+            explicit TitleInfo(uint64_t applicationID, const NacpStruct *archivedNacp = nullptr) noexcept;
 
             // None of this nonesense around these parts.
             TitleInfo(const TitleInfo &)            = delete;
@@ -103,6 +97,8 @@ namespace data
 
             /// @brief Where all the good stuff is.
             NsApplicationControlData m_data{};
+            // Number of icon bytes returned by a system service.
+            size_t m_iconSize{};
 
             /// @brief Owns the selected entry, including titles decoded from compressed NACP data.
             NacpLanguageEntry m_entry{};

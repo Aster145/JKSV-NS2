@@ -64,7 +64,7 @@ INCLUDES	:=	include ./Libraries/FsLib/Switch/FsLib/include ./Libraries/SDLLib/SD
 EXEFS_SRC	:=	exefs_src
 APP_TITLE   :=  JKSV-NS2
 APP_AUTHOR  :=  果冻扭扭
-APP_VERSION :=  1.0.0
+APP_VERSION :=  1.0.1
 ROMFS	    :=	romfs
 ICON		:=	icon.jpg
 

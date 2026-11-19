@@ -9,37 +9,53 @@
 
 #include <algorithm>
 #include <array>
+#include <cinttypes>
 #include <cstring>
 #include <zlib.h>
 
 //                      ---- Construction ----
 
-data::TitleInfo::TitleInfo(uint64_t applicationID) noexcept
+data::TitleInfo::TitleInfo(uint64_t applicationID, const NacpStruct *archivedNacp) noexcept
     : m_applicationID(applicationID)
 {
-    static constexpr size_t SIZE_CTRL_DATA = sizeof(NsApplicationControlData);
-
-    uint64_t controlSize{};
-
-    // This will filter from even trying to fetch control data for system titles.
-    const bool isSystem   = applicationID & 0x8000000000000000;
-    const bool getError   = !isSystem && error::libnx(nsGetApplicationControlData(NsApplicationControlSource_Storage,
-                                                                                m_applicationID,
-                                                                                &m_data,
-                                                                                SIZE_CTRL_DATA,
-                                                                                &controlSize));
-    m_hasData = !isSystem && !getError;
+    const bool isSystem = applicationID & 0x8000000000000000;
+    if (!isSystem)
+    {
+        constexpr auto source = NsApplicationControlSource_Storage;
+        u64 size{};
+        const auto valid = [&](Result rc) {
+            return R_SUCCEEDED(rc) && size >= sizeof(m_data.nacp) && size <= sizeof(m_data);
+        };
+        // Request the compact icon for the default edition on Switch 2.
+        Result rc = nsGetApplicationControlData2(source, applicationID, &m_data, sizeof(m_data), 1, 0, &size, nullptr);
+        logger::log("Title %016" PRIX64 " compact rc=0x%08X bytes=%" PRIu64, applicationID, rc, size);
+        if (!valid(rc))
+        {
+            std::memset(&m_data, 0, sizeof(m_data));
+            size = 0;
+            rc = nsGetApplicationControlData(source, applicationID, &m_data, sizeof(m_data), &size);
+            logger::log("Title %016" PRIX64 " legacy rc=0x%08X bytes=%" PRIu64, applicationID, rc, size);
+        }
+        if (!valid(rc))
+        {
+            // Ask NS to consult installed storage directly after its cache-aware calls failed.
+            std::memset(&m_data, 0, sizeof(m_data));
+            size = 0;
+            rc = nsGetApplicationControlData2(NsApplicationControlSource_StorageOnly, applicationID,
+                                              &m_data, sizeof(m_data), 1, 0, &size, nullptr);
+            logger::log("Title %016" PRIX64 " storage-only rc=0x%08X bytes=%" PRIu64, applicationID, rc, size);
+        }
+        m_hasData = valid(rc);
+        if (m_hasData) { m_iconSize = size - sizeof(m_data.nacp); }
+        else { std::memset(&m_data, 0, sizeof(m_data)); }
+    }
+    if (!m_hasData && archivedNacp)
+    {
+        m_data.nacp = *archivedNacp;
+        m_hasData = true;
+    }
     TitleInfo::load_language_entries();
-    TitleInfo::get_create_path_safe_title();
-}
-
-// To do: Make this safer...
-data::TitleInfo::TitleInfo(uint64_t applicationID, NsApplicationControlData &controlData) noexcept
-    : m_applicationID(applicationID)
-    , m_data(controlData)
-    , m_hasData(true)
-{
-    TitleInfo::load_language_entries();
+    if (m_hasData) { logger::log("Title %016" PRIX64 " name=%s", applicationID, m_entry.name); }
     TitleInfo::get_create_path_safe_title();
 }
 
@@ -148,19 +164,16 @@ void data::TitleInfo::set_path_safe_title(const char *newPathSafe) noexcept
 
 void data::TitleInfo::load_icon()
 {
-    // This is taken from the NacpStruct.
-    static constexpr size_t SIZE_ICON = 0x20000;
-
-    if (m_hasData)
+    if (m_iconSize)
     {
-        const std::string textureName = stringutil::get_formatted_string("%016llX", m_applicationID);
-        m_icon                        = sdl::TextureManager::load(textureName, m_data.icon, SIZE_ICON);
+        const std::string textureName = stringutil::get_formatted_string("%016" PRIX64, m_applicationID);
+        m_icon = sdl::TextureManager::load(textureName, m_data.icon, m_iconSize);
+        if (m_icon && m_icon->get()) { return; }
+        logger::log("Title %016" PRIX64 " icon decode failed (%zu bytes): %s",
+                    m_applicationID, m_iconSize, SDL_GetError());
     }
-    else
-    {
-        const std::string text = stringutil::get_formatted_string("%04X", m_applicationID & 0xFFFF);
-        m_icon                 = gfxutil::create_generic_icon(text, 48, colors::DIALOG_DARK, colors::WHITE);
-    }
+    const std::string text = stringutil::get_formatted_string("%04X", static_cast<unsigned>(m_applicationID & 0xFFFF));
+    m_icon = gfxutil::create_generic_icon(text, 48, colors::DIALOG_DARK, colors::WHITE);
 }
 
 //                      ---- Private functions ----

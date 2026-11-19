@@ -127,11 +127,18 @@ bool data::DataContext::title_is_loaded(uint64_t applicationID) noexcept
     return loaded;
 }
 
-void data::DataContext::load_title(uint64_t applicationID)
+void data::DataContext::load_title(uint64_t applicationID, const NacpStruct *archivedNacp)
 {
-    std::scoped_lock titleGuard{m_titleMutex, m_iconQueueMutex};
-    m_titleInfo.try_emplace(applicationID, applicationID);
-    m_iconQueue.push_back(&m_titleInfo.at(applicationID));
+    data::TitleInfo *title;
+    {
+        std::lock_guard titleGuard{m_titleMutex};
+        auto [it, inserted] = m_titleInfo.try_emplace(applicationID, applicationID, archivedNacp);
+        if (!inserted) { return; }
+        title = &it->second;
+    }
+    // The title is fully constructed before the render thread can consume it.
+    std::lock_guard queueGuard{m_iconQueueMutex};
+    m_iconQueue.push_back(title);
 }
 
 data::TitleInfo *data::DataContext::get_title_by_id(uint64_t applicationID) noexcept
@@ -173,8 +180,7 @@ void data::DataContext::import_svi_files(sys::Task *task)
 
     task->set_status(statusLoadingSvi);
 
-    // auto controlData = std::make_unique<NsApplicationControlData>();
-    NsApplicationControlData controlData{};
+    NacpStruct nacp{};
     for (const fslib::DirectoryEntry &entry : sviDir)
     {
         const fslib::Path target{sviPath / entry};
@@ -189,12 +195,10 @@ void data::DataContext::import_svi_files(sys::Task *task)
         const bool exists    = DataContext::title_is_loaded(applicationID);
         if (!magicRead || magic != fs::SAVE_META_MAGIC || !idRead || exists) { continue; }
 
-        const bool dataRead = sviFile.read(&controlData, SIZE_CTRL_DATA) == SIZE_CTRL_DATA;
+        const bool dataRead = sviFile.read(&nacp, sizeof(nacp)) == sizeof(nacp);
         if (!dataRead) { continue; }
 
-        std::scoped_lock multiGuard{m_iconQueueMutex, m_titleMutex};
-        m_titleInfo.try_emplace(applicationID, applicationID, controlData);
-        m_iconQueue.push_back(&m_titleInfo.at(applicationID));
+        load_title(applicationID, &nacp);
     }
 }
 
@@ -216,9 +220,10 @@ bool data::DataContext::read_cache(sys::Task *task)
     const char *statusLoadingCache = strings::get_by_name(strings::names::DATA_LOADING_STATUS, 4);
     task->set_status(statusLoadingCache);
 
-    NsApplicationControlData controlData{};
+    NacpStruct nacp{};
     do {
-        const bool dataRead = cacheZip.read(&controlData, SIZE_CTRL_DATA) == SIZE_CTRL_DATA;
+        if (cacheZip.get_uncompressed_size() != SIZE_CTRL_DATA) { continue; }
+        const bool dataRead = cacheZip.read(&nacp, sizeof(nacp)) == sizeof(nacp);
         if (!dataRead) { continue; }
 
         std::string_view filename{cacheZip.get_filename()};
@@ -228,10 +233,7 @@ bool data::DataContext::read_cache(sys::Task *task)
         filename                     = filename.substr(nameBegin);
         const uint64_t applicationID = std::strtoull(filename.data(), nullptr, 16);
 
-        std::scoped_lock multiGuard{m_iconQueueMutex, m_titleMutex};
-
-        m_titleInfo.try_emplace(applicationID, applicationID, controlData);
-        m_iconQueue.push_back(&m_titleInfo.at(applicationID));
+        load_title(applicationID, &nacp);
     } while (cacheZip.next_file());
     m_cacheIsValid = true;
     return true;
@@ -272,7 +274,10 @@ bool data::DataContext::write_cache(sys::Task *task)
 
 void data::DataContext::process_icon_queue()
 {
-    std::lock_guard multiGuard{m_iconQueueMutex};
-    for (data::DataCommon *common : m_iconQueue) { common->load_icon(); }
-    m_iconQueue.clear();
+    std::vector<data::DataCommon *> ready;
+    {
+        std::lock_guard queueGuard{m_iconQueueMutex};
+        ready.swap(m_iconQueue);
+    }
+    for (data::DataCommon *common : ready) { common->load_icon(); }
 }
